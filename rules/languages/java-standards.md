@@ -1,5 +1,37 @@
 # Java 代码规范
 
+## 0. 核心原则
+
+### 0.1 规范优先原则
+**所有代码必须严格遵循当前规范标准，无需考虑向后兼容性或遗留系统支持，仅针对目标环境实现最优解决方案。**
+
+- 以当前规范为唯一标准，不妥协于历史代码风格
+- 充分利用目标环境的最新特性，不迁就旧版本兼容性
+- 优先实现最优方案，不因遗留系统而降低代码质量
+- 新代码必须 100% 符合规范，不对旧代码做兼容适配
+
+### 0.2 示例
+```java
+// ✅ 好的示例 - 使用 Java 8+ 新特性
+List<String> activeUsers = users.stream()
+    .filter(User::isActive)
+    .map(User::getName)
+    .collect(Collectors.toList());
+
+// ✅ 好的示例 - 使用 Optional 避免空指针
+String name = Optional.ofNullable(user)
+    .map(User::getName)
+    .orElse("Unknown");
+
+// ❌ 避免 - 为了兼容旧代码而使用过时写法
+List<String> activeUsers = new ArrayList<>();
+for (User user : users) {
+    if (user.isActive()) {
+        activeUsers.add(user.getName());
+    }
+}
+```
+
 ## 1. 基础规范
 
 ### 1.1 源文件基础

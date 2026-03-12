@@ -1,5 +1,27 @@
 # JavaScript / TypeScript 代码规范
 
+## 0. 核心原则
+
+### 0.1 规范优先原则
+**所有代码必须严格遵循当前规范标准，无需考虑向后兼容性或遗留系统支持，仅针对目标环境实现最优解决方案。**
+
+- 以当前规范为唯一标准，不妥协于历史代码风格
+- 充分利用目标环境的最新特性，不迁就旧版本兼容性
+- 优先实现最优方案，不因遗留系统而降低代码质量
+- 新代码必须 100% 符合规范，不对旧代码做兼容适配
+
+### 0.2 示例
+```typescript
+// ✅ 好的示例 - 使用最新特性，不考虑旧浏览器兼容
+const result = data?.map(item => item.value).filter(Boolean) ?? [];
+
+// ✅ 好的示例 - 使用目标环境原生 API，不引入 polyfill
+const unique = [...new Set(items)];
+
+// ❌ 避免 - 为了兼容旧代码而使用过时写法
+var result = data && data.map ? data.map(function(item) { return item.value; }) : [];
+```
+
 ## 1. 语言选择
 
 - 新项目优先使用 **TypeScript**

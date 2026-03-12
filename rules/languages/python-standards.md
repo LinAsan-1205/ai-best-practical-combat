@@ -1,5 +1,44 @@
 # Python 代码规范
 
+## 0. 核心原则
+
+### 0.1 规范优先原则
+**所有代码必须严格遵循当前规范标准，无需考虑向后兼容性或遗留系统支持，仅针对目标环境实现最优解决方案。**
+
+- 以当前规范为唯一标准，不妥协于历史代码风格
+- 充分利用目标环境的最新特性，不迁就旧版本兼容性
+- 优先实现最优方案，不因遗留系统而降低代码质量
+- 新代码必须 100% 符合规范，不对旧代码做兼容适配
+
+### 0.2 示例
+```python
+# ✅ 好的示例 - 使用 Python 3.9+ 新特性
+from __future__ import annotations
+
+def process_users(users: list[User]) -> dict[str, User]:
+    return {user.id: user for user in users}
+
+# ✅ 好的示例 - 使用海象运算符和模式匹配 (Python 3.8+)
+if (n := len(data)) > 10:
+    print(f"Data has {n} items")
+
+# 模式匹配 (Python 3.10+)
+match status:
+    case "active":
+        activate_user()
+    case "inactive":
+        deactivate_user()
+
+# ❌ 避免 - 为了兼容旧代码而使用过时写法
+from typing import List, Dict  # Python 3.9+ 不需要
+
+def process_users(users: List[User]) -> Dict[str, User]:
+    result = {}
+    for user in users:
+        result[user.id] = user
+    return result
+```
+
 ## 1. 基础规范
 
 ### 1.1 遵循 PEP 8
