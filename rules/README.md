@@ -41,7 +41,7 @@ rules/
 |------|------|------|
 | `core/quick-reference.md` | ~3KB | 精简版，推荐日常使用 |
 | `core/general-coding-standards.md` | ~3KB | 通用规范 |
-| `languages/javascript-typescript-standards.md` | ~48KB | 最详细，按需引用 |
+| `languages/javascript-typescript-standards.md` | ~52KB | 最详细，按需引用 |
 | `languages/java-standards.md` | ~13KB | Java 专用 |
 | `languages/python-standards.md` | ~9KB | Python 专用 |
 | `practices/git-commit-standards.md` | ~5KB | Git 提交规范 |

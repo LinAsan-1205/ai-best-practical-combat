@@ -759,6 +759,23 @@ export { ProductService } from './product-service';
 import { UserService, OrderService } from '@/services';
 ```
 
+#### 目录导入规范
+```typescript
+// ❌ 避免 - 显式指定 index 文件路径
+export * from './utils/index';
+export { helper } from './components/index';
+
+// ✅ 好的示例 - 省略 index，直接导入目录
+export * from './utils';
+export { helper } from './components';
+
+// ✅ 好的示例 - 使用方也从目录导入
+import { utils } from './utils';
+import { components } from './components';
+```
+
+**说明**：当目录中存在 `index.ts` 或 `index.js` 文件时，模块系统会自动解析该文件。显式添加 `/index` 是冗余的，应该省略以简化导入路径。
+
 ## 9. React 性能优化规范
 
 基于 Vercel React Best Practices 的性能优化指南。
@@ -1563,6 +1580,135 @@ import {
   // 数组操作
   chunk, flatten, uniq, sortBy, groupBy, keyBy
 } from 'lodash-es';
+```
+
+### 9.3 使用 destr 替代 JSON.parse
+**优先使用 destr 替代原生 JSON.parse，特别是在处理不可信输入时。**
+
+[destr](https://github.com/unjs/destr) 是一个更快、更安全、更方便的 JSON.parse 替代方案，由 UnJS 团队维护。
+
+#### 安装
+```bash
+npm i destr
+# 或
+yarn add destr
+# 或
+pnpm i destr
+```
+
+#### 为什么使用 destr
+
+1. **类型安全** - 默认返回 `unknown` 类型，支持泛型
+2. **快速回退** - 非字符串输入直接返回原值，不会抛出错误
+3. **已知字符串值快速查找** - 自动处理 `"TRUE"`、`"true"` 等布尔值
+4. **解析失败回退** - 解析失败时返回原始值（而非抛出异常）
+5. **避免原型污染** - 自动清理 `__proto__` 等危险属性
+
+#### 使用示例
+
+```typescript
+import { destr, safeDestr } from 'destr';
+
+// ✅ 好的示例 - 基础用法
+const obj = destr('{ "name": "John" }'); // { name: 'John' }
+
+// ✅ 好的示例 - 带类型
+interface User {
+  name: string;
+  age: number;
+}
+const user = destr<User>('{ "name": "John", "age": 30 }');
+
+// ✅ 好的示例 - 非字符串输入不会报错
+const result1 = destr(undefined); // undefined
+const result2 = destr(null);      // null
+const result3 = destr(123);       // 123
+
+// ✅ 好的示例 - 自动处理布尔值
+const bool1 = destr('TRUE');   // true
+const bool2 = destr('true');   // true
+const bool3 = destr('FALSE');  // false
+
+// ✅ 好的示例 - 解析失败返回原值
+const fallback = destr('invalid json'); // 'invalid json'
+
+// ✅ 好的示例 - 严格模式（解析失败抛出错误）
+try {
+  const strict = safeDestr<User>('{ invalid }');
+} catch (error) {
+  // 处理解析错误
+}
+```
+
+#### 与 JSON.parse 对比
+
+```typescript
+// ❌ 避免 - JSON.parse 的问题
+// 1. 类型不安全
+const obj1 = JSON.parse('{}'); // obj1 类型是 any
+
+// 2. 非字符串输入会报错
+JSON.parse(undefined); // SyntaxError
+
+// 3. 布尔值字符串解析失败
+JSON.parse('TRUE'); // SyntaxError
+
+// 4. 解析失败抛出异常
+try {
+  JSON.parse('invalid');
+} catch (e) {
+  // 必须捕获
+}
+
+// 5. 存在原型污染风险
+const malicious = '{"__proto__": {"isAdmin": true}}';
+JSON.parse(malicious); // 危险！
+
+// ✅ 好的示例 - destr 解决以上问题
+import { destr } from 'destr';
+
+// 1. 类型安全（默认 unknown，支持泛型）
+const obj2 = destr('{}'); // obj2 类型是 unknown
+const obj3 = destr<User>('{}'); // obj3 类型是 User
+
+// 2. 非字符串直接返回
+const result = destr(undefined); // undefined，不报错
+
+// 3. 自动处理布尔值
+const bool = destr('TRUE'); // true
+
+// 4. 解析失败返回原值
+const fallback = destr('invalid'); // 'invalid'，不抛出
+
+// 5. 自动防止原型污染
+const safe = destr(malicious); // { user: {} }，已清理
+```
+
+#### 适用场景
+
+- **API 响应解析** - 处理可能非 JSON 的响应
+- **配置读取** - 解析环境变量或配置文件
+- **用户输入** - 处理不可信的用户输入
+- **数据存储** - 从 localStorage 等存储中读取数据
+- **日志处理** - 解析可能损坏的 JSON 日志
+
+```typescript
+// ✅ 好的示例 - API 响应处理
+async function fetchUser(id: string): Promise<User | null> {
+  const response = await fetch(`/api/users/${id}`);
+  const text = await response.text();
+  // 即使返回非 JSON（如 HTML 错误页面），也不会崩溃
+  return destr<User>(text);
+}
+
+// ✅ 好的示例 - localStorage 读取
+function getStoredData<T>(key: string): T | null {
+  const stored = localStorage.getItem(key);
+  return destr<T>(stored);
+}
+
+// ✅ 好的示例 - 环境变量解析
+const config = destr<Config>(process.env.APP_CONFIG);
 ```
 
 ## 11. 条件表达式规范
@@ -2375,6 +2521,7 @@ const obj = { key: 'value' };
 - **Husky**: Git 钩子
 - **lint-staged**: 暂存文件检查
 - **lodash-es**: 工具函数库
+- **destr**: 安全、快速的 JSON.parse 替代方案
 - **eslint-config-airbnb**: Airbnb 规范配置
 - **eslint-config-prettier**: 关闭与 Prettier 冲突的 ESLint 规则
 - **eslint-plugin-react-hooks**: React Hooks 规则检查
