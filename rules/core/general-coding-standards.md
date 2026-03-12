@@ -144,14 +144,95 @@ try {
 }
 ```
 
-## 6. 性能考虑
+## 6. 硬编码规范
+
+### 6.1 必须使用常量的场景
+
+| 场景 | 说明 | 示例 |
+|------|------|------|
+| **业务状态值** | 表示业务状态的字符串/数字 | 用户状态、订单状态、权限标识 |
+| **配置参数** | 可调整的参数值 | 超时时间、重试次数、分页大小 |
+| **外部接口** | 与外部系统交互的标识 | API 地址、错误码、响应消息 |
+| **多处使用** | 在多个地方重复使用的值 | 默认值、边界值、魔法数字 |
+| **可能变化** | 未来可能需要修改的值 | 版本号、限制值、阈值 |
+
+```javascript
+// ❌ 避免 - 业务状态值硬编码
+if (status === 'active') {}
+if (order.status === 2) {}  // 2 代表什么？
+
+// ❌ 避免 - 配置参数硬编码
+const timeout = 5000;  // 5秒？为什么是这个值？
+const maxRetries = 3;  // 3次？可以调整吗？
+
+// ✅ 好的示例 - 使用常量
+import { USER_STATUS_ACTIVE, ORDER_STATUS_PAID } from '@/constants/status';
+import { REQUEST_TIMEOUT_MS, MAX_RETRY_ATTEMPTS } from '@/constants/config';
+
+if (status === USER_STATUS_ACTIVE) {}
+if (order.status === ORDER_STATUS_PAID) {}
+const timeout = REQUEST_TIMEOUT_MS;  // 配置集中管理
+const maxRetries = MAX_RETRY_ATTEMPTS;  // 含义清晰，便于调整
+```
+
+### 6.2 可以直接使用字面量的场景
+
+| 场景 | 说明 | 示例 |
+|------|------|------|
+| **语义明确** | 值本身就能说明含义 | `count > 0`, `index + 1` |
+| **局部使用** | 只在当前上下文使用 | 循环计数器、临时计算 |
+| **标准值** | 行业/语言标准值 | `Math.PI`, `100` (百分比) |
+| **测试数据** | 测试用例中的数据 | mock 数据、测试输入 |
+
+```javascript
+// ✅ 可以直接使用 - 语义明确
+if (count > 0) {}
+const nextIndex = currentIndex + 1;
+const percentage = (value / total) * 100;
+
+// ✅ 可以直接使用 - 局部使用
+for (let i = 0; i < items.length; i++) {}
+const firstItem = items[0];
+const lastItem = items[items.length - 1];
+
+// ✅ 可以直接使用 - 标准值
+const circumference = 2 * Math.PI * radius;
+const isEmpty = str.length === 0;
+
+// ✅ 可以直接使用 - 测试数据
+expect(add(2, 3)).toBe(5);  // 测试数据直接使用
+```
+
+### 6.3 需要注释的场景
+
+当使用字面量时，如果含义不够直观，应添加注释说明：
+
+```javascript
+// ✅ 添加注释说明
+const maxRetries = 3; // 网络请求失败后的最大重试次数
+const debounceDelay = 300; // 输入防抖延迟，单位毫秒
+
+// ✅ 复杂计算添加注释
+const cacheDuration = 60 * 60 * 1000; // 1小时的毫秒数
+
+// ❌ 避免 - 魔法数字无注释
+const result = value * 0.15;  // 0.15 是什么？
+
+// ✅ 好的示例 - 添加注释或使用常量
+const result = value * 0.15; // 15% 的服务费
+// 或
+const SERVICE_FEE_RATE = 0.15;
+const result = value * SERVICE_FEE_RATE;
+```
+
+## 7. 性能考虑
 
 - 避免过早优化
 - 优先代码可读性
 - 在性能关键路径上进行优化
 - 使用性能分析工具定位瓶颈
 
-## 7. 安全规范
+## 8. 安全规范
 
 - 永远不要信任用户输入
 - 对所有输入进行验证和清理
@@ -159,7 +240,7 @@ try {
 - 敏感信息不要硬编码
 - 使用 HTTPS 进行网络通信
 
-## 8. 测试规范
+## 9. 测试规范
 
 - 编写单元测试覆盖核心业务逻辑
 - 测试命名清晰描述测试场景

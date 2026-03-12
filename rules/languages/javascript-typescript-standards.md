@@ -50,57 +50,148 @@ config.ts
 
 ## 3. 命名规范
 
-### 3.0 禁止硬编码
-**所有字符串、数字、布尔值等字面量必须使用常量定义，禁止在代码中直接硬编码。**
+### 3.0 硬编码规范
+
+硬编码（Magic Values）需要**根据场景判断**是否提取为常量。以下场景**必须**使用常量，其他场景可直接使用字面量。
+
+#### 必须使用常量的场景
+
+| 场景 | 说明 | 示例 |
+|------|------|------|
+| **业务状态值** | 表示业务状态的字符串/数字 | 用户状态、订单状态、权限标识 |
+| **配置参数** | 可调整的参数值 | 超时时间、重试次数、分页大小 |
+| **外部接口** | 与外部系统交互的标识 | API 地址、错误码、响应消息 |
+| **多处使用** | 在多个地方重复使用的值 | 默认值、边界值、魔法数字 |
+| **可能变化** | 未来可能需要修改的值 | 版本号、限制值、阈值 |
 
 ```typescript
-// ❌ 禁止 - 硬编码字符串
+// ❌ 禁止 - 业务状态值硬编码
 if (status === 'active') {}
+if (order.status === 2) {}  // 2 代表什么？
+
+// ❌ 禁止 - 配置参数硬编码
+const timeout = 5000;  // 5秒？为什么是这个值？
+const maxRetries = 3;  // 3次？可以调整吗？
+
+// ❌ 禁止 - 错误消息硬编码
 if (error.message === 'User not found') {}
-const apiUrl = 'https://api.example.com';
-const defaultRole = 'user';
-
-// ❌ 禁止 - 硬编码数字
-const maxRetries = 3;
-const timeout = 5000;
-const pageSize = 20;
-
-// ❌ 禁止 - 硬编码布尔值判断
-if (user.status === true) {}
-if (config.enabled === false) {}
+throw new Error('Invalid credentials');
 
 // ✅ 好的示例 - 使用常量
-import { USER_STATUS_ACTIVE, ERROR_USER_NOT_FOUND } from '@/constants/user';
-import { API_BASE_URL } from '@/constants/config';
-import { DEFAULT_USER_ROLE } from '@/constants/roles';
-import { MAX_RETRY_ATTEMPTS, REQUEST_TIMEOUT_MS, DEFAULT_PAGE_SIZE } from '@/constants/app';
+import { USER_STATUS_ACTIVE, ORDER_STATUS_PAID } from '@/constants/status';
+import { REQUEST_TIMEOUT_MS, MAX_RETRY_ATTEMPTS } from '@/constants/config';
+import { ERROR_USER_NOT_FOUND, ERROR_INVALID_CREDENTIALS } from '@/constants/error';
 
 if (status === USER_STATUS_ACTIVE) {}
-if (error.message === ERROR_USER_NOT_FOUND) {}
-const apiUrl = API_BASE_URL;
-const maxRetries = MAX_RETRY_ATTEMPTS;
+if (order.status === ORDER_STATUS_PAID) {}
+const timeout = REQUEST_TIMEOUT_MS;  // 配置集中管理
+const maxRetries = MAX_RETRY_ATTEMPTS;  // 含义清晰，便于调整
+```
 
-// ✅ 好的示例 - 使用枚举（TypeScript）
+#### 可以直接使用字面量的场景
+
+| 场景 | 说明 | 示例 |
+|------|------|------|
+| **语义明确** | 值本身就能说明含义 | `count > 0`, `index + 1` |
+| **局部使用** | 只在当前上下文使用 | 循环计数器、临时计算 |
+| **标准值** | 行业/语言标准值 | `Math.PI`, `100` (百分比) |
+| **测试数据** | 测试用例中的数据 |  mock 数据、测试输入 |
+
+```typescript
+// ✅ 可以直接使用 - 语义明确
+if (count > 0) {}
+const nextIndex = currentIndex + 1;
+const percentage = (value / total) * 100;
+
+// ✅ 可以直接使用 - 局部使用
+for (let i = 0; i < items.length; i++) {}
+const firstItem = items[0];
+const lastItem = items[items.length - 1];
+
+// ✅ 可以直接使用 - 标准值
+const circumference = 2 * Math.PI * radius;
+const isEmpty = str.length === 0;
+
+// ✅ 可以直接使用 - 测试数据
+describe('calculator', () => {
+  it('should add numbers', () => {
+    expect(add(2, 3)).toBe(5);  // 测试数据直接使用
+  });
+});
+```
+
+#### 使用枚举（TypeScript）
+
+对于一组相关的业务状态值，优先使用枚举：
+
+```typescript
+// ✅ 好的示例 - 使用枚举
 enum UserStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
   PENDING = 'pending',
 }
 
-enum ErrorCode {
-  USER_NOT_FOUND = 'USER_NOT_FOUND',
-  INVALID_CREDENTIALS = 'INVALID_CREDENTIALS',
+enum HttpStatusCode {
+  OK = 200,
+  CREATED = 201,
+  BAD_REQUEST = 400,
+  UNAUTHORIZED = 401,
+  NOT_FOUND = 404,
+  SERVER_ERROR = 500,
 }
 
 if (user.status === UserStatus.ACTIVE) {}
-if (error.code === ErrorCode.USER_NOT_FOUND) {}
+if (response.status === HttpStatusCode.OK) {}
+```
 
+#### 配置对象
+
+对于相关的配置参数，使用配置对象组织：
+
+```typescript
 // ✅ 好的示例 - 配置对象
-import { APP_CONFIG } from '@/constants/config';
+export const APP_CONFIG = {
+  retry: {
+    maxAttempts: 3,
+    delayMs: 1000,
+  },
+  request: {
+    timeout: 5000,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  },
+  pagination: {
+    defaultSize: 20,
+    maxSize: 100,
+  },
+} as const;
 
-const maxRetries = APP_CONFIG.retry.maxAttempts;
+// 使用
 const timeout = APP_CONFIG.request.timeout;
-const pageSize = APP_CONFIG.pagination.defaultSize;
+```
+
+#### 需要注释的场景
+
+当使用字面量时，如果含义不够直观，应添加注释说明：
+
+```typescript
+// ✅ 添加注释说明
+const maxRetries = 3; // 网络请求失败后的最大重试次数
+const debounceDelay = 300; // 输入防抖延迟，单位毫秒
+
+// ✅ 复杂计算添加注释
+const cacheDuration = 60 * 60 * 1000; // 1小时的毫秒数
+
+// ❌ 避免 - 魔法数字无注释
+const result = value * 0.15;  // 0.15 是什么？
+
+// ✅ 好的示例 - 添加注释或使用常量
+const result = value * 0.15; // 15% 的服务费
+// 或
+const SERVICE_FEE_RATE = 0.15;
+const result = value * SERVICE_FEE_RATE;
 ```
 
 #### 常量文件组织
@@ -121,12 +212,12 @@ constants/
 export const APP_NAME = 'MyApplication';
 export const APP_VERSION = '1.0.0';
 
-export const MAX_RETRY_ATTEMPTS = 3;
-export const REQUEST_TIMEOUT_MS = 5000;
-export const DEBOUNCE_DELAY_MS = 300;
+export const MAX_RETRY_ATTEMPTS = 3;  // 网络请求失败后的最大重试次数
+export const REQUEST_TIMEOUT_MS = 5000;  // 请求超时时间，单位毫秒
+export const DEBOUNCE_DELAY_MS = 300;  // 输入防抖延迟，单位毫秒
 
-export const DEFAULT_PAGE_SIZE = 20;
-export const MAX_PAGE_SIZE = 100;
+export const DEFAULT_PAGE_SIZE = 20;  // 默认分页大小
+export const MAX_PAGE_SIZE = 100;  // 最大分页大小
 
 // constants/user.ts
 export const USER_STATUS_ACTIVE = 'active';
@@ -136,9 +227,9 @@ export const USER_STATUS_PENDING = 'pending';
 export const DEFAULT_USER_ROLE = 'user';
 export const ADMIN_ROLE = 'admin';
 
-export const USERNAME_MIN_LENGTH = 3;
-export const USERNAME_MAX_LENGTH = 20;
-export const PASSWORD_MIN_LENGTH = 8;
+export const USERNAME_MIN_LENGTH = 3;  // 用户名最小长度
+export const USERNAME_MAX_LENGTH = 20;  // 用户名最大长度
+export const PASSWORD_MIN_LENGTH = 8;  // 密码最小长度
 
 // constants/error.ts
 export const ERROR_USER_NOT_FOUND = 'User not found';
@@ -160,18 +251,18 @@ export const HTTP_STATUS_SERVER_ERROR = 500;
 // constants/config.ts
 export const APP_CONFIG = {
   retry: {
-    maxAttempts: 3,
-    delayMs: 1000,
+    maxAttempts: 3,  // 最大重试次数
+    delayMs: 1000,   // 重试延迟，单位毫秒
   },
   request: {
-    timeout: 5000,
+    timeout: 5000,   // 请求超时时间
     headers: {
       'Content-Type': 'application/json',
     },
   },
   pagination: {
-    defaultSize: 20,
-    maxSize: 100,
+    defaultSize: 20,  // 默认每页条数
+    maxSize: 100,     // 最大每页条数
   },
 } as const;
 ```
@@ -1930,16 +2021,29 @@ module.exports = {
             type: 'array',
             items: { type: 'string' },
           },
+          // 允许在测试文件中直接使用字面量
+          ignoreInTestFiles: {
+            type: 'boolean',
+            default: true,
+          },
         },
       },
     ],
     messages: {
-      noMagic: 'Unexpected magic value "{{value}}". Use a named constant instead.',
+      noMagic: 'Unexpected magic value "{{value}}". Consider using a named constant or adding a comment to explain its meaning.',
     },
   },
   create(context) {
     const options = context.options[0] || {};
     const ignore = options.ignore || ['0', '1', '-1', 'true', 'false'];
+    const ignoreInTestFiles = options.ignoreInTestFiles !== false;
+    const filename = context.getFilename();
+    
+    // 检查是否在测试文件中
+    const isTestFile = /\.(test|spec)\.(ts|tsx|js|jsx)$/.test(filename);
+    if (ignoreInTestFiles && isTestFile) {
+      return {};
+    }
 
     return {
       Literal(node) {
@@ -1954,6 +2058,14 @@ module.exports = {
           if (node.value.length <= 3) {
             return;
           }
+          // 允许标准 HTTP 方法
+          if (['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].includes(node.value)) {
+            return;
+          }
+          // 允许标准 Content-Type
+          if (node.value.startsWith('application/') || node.value.startsWith('text/')) {
+            return;
+          }
           context.report({
             node,
             messageId: 'noMagic',
@@ -1963,6 +2075,18 @@ module.exports = {
 
         // 检查数字字面量
         if (typeof node.value === 'number' && node.value !== 0 && node.value !== 1) {
+          // 允许标准 HTTP 状态码
+          if ([200, 201, 204, 400, 401, 403, 404, 500].includes(node.value)) {
+            return;
+          }
+          // 允许时间相关的常见值（毫秒）
+          if ([100, 200, 300, 500, 1000, 2000, 5000, 10000, 60000, 300000, 600000].includes(node.value)) {
+            return;
+          }
+          // 允许百分比相关的值
+          if ([100, 50, 25, 75, 10, 20, 30, 40, 60, 70, 80, 90].includes(node.value)) {
+            return;
+          }
           context.report({
             node,
             messageId: 'noMagic',
@@ -1974,6 +2098,8 @@ module.exports = {
   },
 };
 ```
+
+**注意**：此 ESLint 规则是辅助工具，不是绝对限制。开发者应根据实际场景判断是否使用常量，参考上面的"必须使用常量的场景"和"可以直接使用字面量的场景"。
 
 ### 11.4 自定义 ESLint 规则 - 禁止空字符串
 创建自定义规则文件 `.eslint/rules/no-empty-string.js`：
@@ -2287,9 +2413,12 @@ const PROCESSING_ORDER = [
 - [ ] 使用 null 或 undefined 代替空字符串
 
 ### 13.5 硬编码检查
-- [ ] 没有硬编码字符串（状态值、错误消息、URL 等）
-- [ ] 没有硬编码数字（超时时间、重试次数、分页大小等）
-- [ ] 所有字面量使用常量定义
+- [ ] 业务状态值使用常量（用户状态、订单状态等）
+- [ ] 配置参数使用常量（超时时间、重试次数、分页大小等）
+- [ ] 外部接口标识使用常量（API 地址、错误码等）
+- [ ] 多处使用的值提取为常量
+- [ ] 可能变化的值使用常量
+- [ ] 语义不明确的字面量添加注释说明
 - [ ] 常量按功能分类存放在 constants 目录
 
 ### 13.6 模块导入检查

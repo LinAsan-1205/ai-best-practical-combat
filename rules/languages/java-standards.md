@@ -302,6 +302,97 @@ public class Config {
 }
 ```
 
+### 6.3 硬编码规范
+
+硬编码（Magic Values）需要**根据场景判断**是否提取为常量。
+
+#### 必须使用常量的场景
+
+| 场景 | 说明 | 示例 |
+|------|------|------|
+| **业务状态值** | 表示业务状态的字符串/数字 | 用户状态、订单状态、权限标识 |
+| **配置参数** | 可调整的参数值 | 超时时间、重试次数、分页大小 |
+| **外部接口** | 与外部系统交互的标识 | API 地址、错误码、响应消息 |
+| **多处使用** | 在多个地方重复使用的值 | 默认值、边界值、魔法数字 |
+| **可能变化** | 未来可能需要修改的值 | 版本号、限制值、阈值 |
+
+```java
+// ❌ 避免 - 业务状态值硬编码
+if (status.equals("active")) {}
+if (order.getStatus() == 2) {}  // 2 代表什么？
+
+// ❌ 避免 - 配置参数硬编码
+int timeout = 5000;  // 5秒？为什么是这个值？
+int maxRetries = 3;  // 3次？可以调整吗？
+
+// ✅ 好的示例 - 使用常量
+public class UserConstants {
+    public static final String STATUS_ACTIVE = "active";
+    public static final String STATUS_INACTIVE = "inactive";
+}
+
+public class AppConfig {
+    public static final int REQUEST_TIMEOUT_MS = 5000;  // 请求超时时间，单位毫秒
+    public static final int MAX_RETRY_ATTEMPTS = 3;     // 最大重试次数
+}
+
+if (status.equals(UserConstants.STATUS_ACTIVE)) {}
+int timeout = AppConfig.REQUEST_TIMEOUT_MS;
+```
+
+#### 可以直接使用字面量的场景
+
+| 场景 | 说明 | 示例 |
+|------|------|------|
+| **语义明确** | 值本身就能说明含义 | `count > 0`, `index + 1` |
+| **局部使用** | 只在当前上下文使用 | 循环计数器、临时计算 |
+| **标准值** | 行业/语言标准值 | `Math.PI`, `100` (百分比) |
+| **测试数据** | 测试用例中的数据 | mock 数据、测试输入 |
+
+```java
+// ✅ 可以直接使用 - 语义明确
+if (count > 0) {}
+int nextIndex = currentIndex + 1;
+double percentage = (value / total) * 100;
+
+// ✅ 可以直接使用 - 局部使用
+for (int i = 0; i < items.size(); i++) {}
+String firstItem = items.get(0);
+String lastItem = items.get(items.size() - 1);
+
+// ✅ 可以直接使用 - 标准值
+double circumference = 2 * Math.PI * radius;
+boolean isEmpty = str.length() == 0;
+
+// ✅ 可以直接使用 - 测试数据
+@Test
+void shouldAddNumbers() {
+    assertEquals(5, calculator.add(2, 3));  // 测试数据直接使用
+}
+```
+
+#### 需要注释的场景
+
+当使用字面量时，如果含义不够直观，应添加注释说明：
+
+```java
+// ✅ 添加注释说明
+int maxRetries = 3; // 网络请求失败后的最大重试次数
+long debounceDelay = 300; // 输入防抖延迟，单位毫秒
+
+// ✅ 复杂计算添加注释
+long cacheDuration = 60 * 60 * 1000; // 1小时的毫秒数
+
+// ❌ 避免 - 魔法数字无注释
+double result = value * 0.15;  // 0.15 是什么？
+
+// ✅ 好的示例 - 添加注释或使用常量
+double result = value * 0.15; // 15% 的服务费
+// 或
+private static final double SERVICE_FEE_RATE = 0.15;
+double result = value * SERVICE_FEE_RATE;
+```
+
 ## 7. 控制流
 
 ### 7.1 条件语句
