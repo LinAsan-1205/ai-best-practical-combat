@@ -352,6 +352,12 @@ const temp = 'temp';
 const obj = {};
 const arr = [];
 
+// ❌ 禁止 - 含糊的 id 命名（看名字不知道是哪一类 ID）
+const id = '123';           // 不知道是用户、订单还是其他 ID
+const ID = '123';           // 同上，还混用大小写风格
+const providerId = 'p-1';   // 是支付渠道？登录提供商？内部服务？名称不自解释
+const sourceId = 's-1';     // 是数据来源？用户来源？导入来源？
+
 // ❌ 禁止 - 任何缩写（即使有上下文也不允许）
 const usr = {};  // user
 const cnt = 0;   // count
@@ -392,6 +398,13 @@ const userIndex = 0;
 const errorMessage = '';
 const appConfig = {};
 const submitButton = {};
+
+// ✅ 好的示例 - 带领域含义的 ID 命名（不依赖注释才能看懂）
+const userAccountId = 'user-123';
+const orderId = 'order-456';
+const paymentProviderId = 'stripe';        // 支付渠道 ID
+const authProviderUserId = 'wx-openid-1';  // 认证提供商里的用户 ID
+const dataSourceId = 'import-job-001';     // 数据来源/导入任务 ID
 
 // ✅ 好的示例 - 布尔值使用描述性复合名称
 const userHasActiveSubscription = true;
@@ -1916,6 +1929,15 @@ const value = a ?? b ?? c ?? d ?? 'default';
 // 语义上“没有值”就应该保持 `undefined`/`null` 的原始状态，而不是再默认成 `null`
 const invalid = user.nickname ?? null;
 
+// ❌ 严禁 - 使用 `?? false` / `?? 0` / `?? ''` 等兜底掩盖“没有这个字段”
+// 是否存在、是否开启功能应该由类型本身表达，不允许用布尔/数字/字符串默认值来假装“有个关掉的值”
+const capabilities = {
+  streaming: validated.capabilities?.streaming ?? false,
+  functionCalling: validated.capabilities?.functionCalling ?? false,
+  vision: validated.capabilities?.vision ?? false,
+  jsonMode: validated.capabilities?.jsonMode ?? false,
+};
+
 // ✅ 好的示例 - 使用显式判断
 let name: string;
 if (user.name) {
@@ -1929,6 +1951,23 @@ import { defaultTo } from 'lodash-es';
 
 const name = defaultTo(user.name, 'Unknown');
 const age = defaultTo(user.age, 18);
+
+// ✅ 好的示例 - 直接用类型表达“有没有”，不做 `?? false` 兜底
+type Capabilities = {
+  streaming?: boolean;
+  functionCalling?: boolean;
+  vision?: boolean;
+  jsonMode?: boolean;
+};
+
+function normalizeCapabilities(validated: { capabilities?: Capabilities }): Capabilities {
+  return {
+    streaming: validated.capabilities?.streaming,
+    functionCalling: validated.capabilities?.functionCalling,
+    vision: validated.capabilities?.vision,
+    jsonMode: validated.capabilities?.jsonMode,
+  };
+}
 
 // ✅ 好的示例 - 提前返回
 function getUserName(user: User | null): string {
@@ -2454,6 +2493,7 @@ const PROCESSING_ORDER = [
 ### 13.1 命名规范检查
 - [ ] 没有以 "is" 开头的变量、函数、类、接口名
 - [ ] 没有使用无意义的通用词（data, info, item, value, temp, obj, arr）
+- [ ] 没有使用含糊的 id 命名（id, ID, providerId, sourceId 等），ID 必须带上清晰的领域前缀/后缀（如 userAccountId, paymentProviderId 等）
 - [ ] 没有使用任何缩写（含缩写变量名、函数名、类名等）
 - [ ] 没有以 Data 结尾的命名（userData, listData, formData, tableData 等）
 - [ ] 没有使用匈牙利命名法
