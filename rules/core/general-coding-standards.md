@@ -247,14 +247,67 @@ const SERVICE_FEE_RATE = 0.15;
 const result = value * SERVICE_FEE_RATE;
 ```
 
-## 7. 性能考虑
+## 7. 时间戳规范
+
+### 7.1 时间戳格式
+**所有时间戳必须使用 ISO 8601 格式。**
+
+- 存储和传输使用 ISO 8601 格式（`YYYY-MM-DDTHH:mm:ss.sssZ`）
+- 时区统一使用 UTC（以 `Z` 结尾）
+- 数据库字段命名：`created_at`, `updated_at`, `deleted_at`
+
+```javascript
+// ✅ 好的示例 - ISO 8601 格式
+const createdAt = '2026-03-12T16:09:07.482Z';
+
+// ❌ 避免 - 其他格式
+const badTime = '2026-03-12 16:09:07';  // 无时区
+const badTime2 = '03/12/2026';          // 地区格式
+const badTime3 = 1710257347482;         // 时间戳数字（除非有特殊性能需求）
+```
+
+### 7.2 各语言实现
+
+**JavaScript/TypeScript:**
+```typescript
+// 获取当前时间 ISO 8601 格式
+const now = new Date().toISOString();  // 2026-03-12T16:09:07.482Z
+
+// 解析 ISO 8601 字符串
+const date = new Date('2026-03-12T16:09:07.482Z');
+```
+
+**Java:**
+```java
+// 获取当前时间 ISO 8601 格式
+String now = Instant.now().toString();  // 2026-03-12T16:09:07.482Z
+
+// 解析 ISO 8601 字符串
+Instant instant = Instant.parse("2026-03-12T16:09:07.482Z");
+```
+
+**Python:**
+```python
+from datetime import datetime, timezone
+
+# 获取当前时间 ISO 8601 格式
+now = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+# 或
+now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+
+# 解析 ISO 8601 字符串
+from datetime import datetime
+date = datetime.fromisoformat('2026-03-12T16:09:07.482Z'.replace('Z', '+00:00'))
+```
+
+## 8. 性能考虑
 
 - 避免过早优化
 - 优先代码可读性
 - 在性能关键路径上进行优化
 - 使用性能分析工具定位瓶颈
 
-## 8. 安全规范
+## 9. 安全规范
 
 - 永远不要信任用户输入
 - 对所有输入进行验证和清理
