@@ -352,13 +352,19 @@ const temp = 'temp';
 const obj = {};
 const arr = [];
 
-// ❌ 禁止 - 无上下文缩写
+// ❌ 禁止 - 任何缩写（即使有上下文也不允许）
 const usr = {};  // user
 const cnt = 0;   // count
 const idx = 0;   // index
 const msg = '';  // message
 const cfg = {};  // config
 const btn = {};  // button
+
+// ❌ 禁止 - 以 Data 结尾的命名（含糊不清，没有语义边界）
+const userData = {};        // 什么维度的数据？原始的？汇总的？
+const listData = [];        // 具体是哪一类列表？
+const formData = {};        // 与浏览器原生 FormData 概念冲突
+const tableData = [];       // 结构、来源、用途都不清晰
 
 // ❌ 禁止 - 匈牙利命名法
 const strName = 'John';
@@ -372,13 +378,14 @@ const arrUsers = [];
 // ✅ 好的示例 - 描述性命名
 const userProfile = {};
 const orderDetails = {};
-const productItem = {};
+const productList = [];
+const rawUserList = [];
+const normalizedUserList = [];
 const totalPrice = 100;
 const temporaryFilePath = '/tmp/file';
 const userObject = {};
 const userList = [];
 
-// ✅ 好的示例 - 带上下文的缩写
 const currentUser = {};
 const itemCount = 0;
 const userIndex = 0;
@@ -497,7 +504,7 @@ function submitForm() {
 ```
 
 ### 3.3 类型定义规范
-**所有类型必须在独立的 type 文件或接口中定义，禁止在代码中直接内联定义类型。**
+**所有类型必须在独立的 type 文件或接口中定义，禁止在代码中直接内联定义类型；禁止在类型中使用 `T | null` 这种“可为 null”的联合类型，没有值就用可选属性或 `undefined`。**
 
 ```typescript
 // ❌ 禁止 - 直接在代码中定义类型
@@ -512,6 +519,26 @@ if (typeof value === 'string') {
 
 // ❌ 禁止 - 内联联合类型
 const status: 'pending' | 'active' | 'inactive' = 'pending';
+
+// ❌ 禁止 - 使用 `number | null` / `string | null` 等联合类型表示“可能没有值”
+// 没有就是没有，直接用可选属性或 `undefined`，而不是强行并一个 null 进去
+type Age = number | null;
+
+interface UserWithNullableAge {
+  age: number | null;
+}
+
+// ✅ 好的示例 - 使用可选属性或 `undefined`
+type SafeAge = number | undefined;
+
+interface User {
+  age?: number;            // 可选属性，未提供即为“没有”
+  nickname?: string;       // 字符串同理，不需要 `string | null`
+}
+
+function getUserAge(user: User): number | undefined {
+  return user.age;
+}
 
 // ✅ 好的示例 - 在 types/user.ts 中定义
 export interface User {
@@ -1885,6 +1912,10 @@ const email = user.email ?? '';
 // ❌ 避免 - 链式使用 ??
 const value = a ?? b ?? c ?? d ?? 'default';
 
+// ❌ 严禁 - 使用 `?? null` 作为默认值（没有就是没有）
+// 语义上“没有值”就应该保持 `undefined`/`null` 的原始状态，而不是再默认成 `null`
+const invalid = user.nickname ?? null;
+
 // ✅ 好的示例 - 使用显式判断
 let name: string;
 if (user.name) {
@@ -1905,6 +1936,16 @@ function getUserName(user: User | null): string {
     return 'Unknown';
   }
   return user.name;
+}
+
+// ✅ 好的示例 - 保持未赋值状态而不是强行默认为 null
+type Nickname = string | undefined;
+
+function getNickname(user: User): Nickname {
+  if (!user.nickname) {
+    return undefined;
+  }
+  return user.nickname;
 }
 ```
 
@@ -2413,7 +2454,8 @@ const PROCESSING_ORDER = [
 ### 13.1 命名规范检查
 - [ ] 没有以 "is" 开头的变量、函数、类、接口名
 - [ ] 没有使用无意义的通用词（data, info, item, value, temp, obj, arr）
-- [ ] 没有使用无上下文的缩写
+- [ ] 没有使用任何缩写（含缩写变量名、函数名、类名等）
+- [ ] 没有以 Data 结尾的命名（userData, listData, formData, tableData 等）
 - [ ] 没有使用匈牙利命名法
 - [ ] 布尔值使用描述性复合名称
 - [ ] 函数使用动作导向动词
@@ -2434,7 +2476,12 @@ const PROCESSING_ORDER = [
 - [ ] 没有使用空字符串作为默认值
 - [ ] 使用 null 或 undefined 代替空字符串
 
-### 13.5 硬编码检查
+### 13.5 条件表达式检查
+- [ ] 复杂条件不用嵌套三元运算符，优先使用 `if/else` 或提前返回
+- [ ] 非必要不使用 `??`，优先使用显式判断或 lodash 工具函数
+- [ ] 严禁使用 `?? null` 作为默认值（没有就是没有）
+
+### 13.6 硬编码检查
 - [ ] 业务状态值使用常量（用户状态、订单状态等）
 - [ ] 配置参数使用常量（超时时间、重试次数、分页大小等）
 - [ ] 外部接口标识使用常量（API 地址、错误码等）
@@ -2443,19 +2490,19 @@ const PROCESSING_ORDER = [
 - [ ] 语义不明确的字面量添加注释说明
 - [ ] 常量按功能分类存放在 constants 目录
 
-### 13.6 模块导入检查
+### 13.7 模块导入检查
 - [ ] 导入顺序符合规范（内置 → 外部 → 内部绝对 → 内部相对 → 类型）
 - [ ] 没有深层相对路径导入（超过两级）
 - [ ] 使用路径别名而非相对路径
 - [ ] 类型导入使用 `import type`
 
-### 13.7 React Hooks 检查
+### 13.8 React Hooks 检查
 - [ ] Hooks 只在组件顶层调用
 - [ ] useEffect 依赖数组完整
 - [ ] 自定义 Hooks 以 use 开头
 - [ ] useCallback/useMemo 使用合理
 
-### 13.8 注释规范检查
+### 13.9 注释规范检查
 - [ ] 复杂函数有 JSDoc 注释
 - [ ] 注释解释 "为什么" 而非 "做什么"
 - [ ] 没有过时的注释
