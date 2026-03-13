@@ -2117,6 +2117,34 @@ function getDocumentMatchRanges(args: {
 }
 ```
 
+#### 10.1.2 禁止“状态累加型三元/短路写法”（强制）
+**禁止用三元或短路表达式在一行里“累加/拼接”状态（尤其是依赖旧值再构造新值的写法），比如路径拼接、字符串拼接等。必须改为具名函数或显式 `if/else`。**
+
+```typescript
+// ❌ 禁止：在一行里用三元依赖旧值拼接新路径
+const currentSegmentShouldBeLeafNode =
+  segmentIndex === pathSegments.length - 1;
+
+currentRelativePath = currentRelativePath
+  ? `${currentRelativePath}/${currentSegment}`
+  : currentSegment;
+
+// ✅ 推荐：抽成具名函数，或用 if/else
+function joinPathSegment(base: string | undefined, segment: string): string {
+  if (!base) {
+    return segment;
+  }
+  return `${base}/${segment}`;
+}
+
+const currentSegmentShouldBeLeafNode = isLeafSegment({
+  index: segmentIndex,
+  total: pathSegments.length,
+});
+
+currentRelativePath = joinPathSegment(currentRelativePath, currentSegment);
+```
+
 ```typescript
 // ❌ 避免 - 复杂的三元运算符
 const result = condition1 
@@ -2169,6 +2197,7 @@ const status = isActive ? 'active' : 'inactive';
 
 - **可选字段（`foo?: T` 或 `foo: T | undefined`）**：表示“可以没有”。**禁止为了方便而写默认值**（例如 `?? false` / `?? ''` / `?? SOME_DEFAULT`），应保持 `undefined` 语义并向下传递。
 - **必填字段（`foo: T`）**：表示“必须有”。如果运行时可能缺失，应该**先调整类型为可选**，再在边界处（入口/解析/normalize）明确补齐默认值，并在返回类型上体现“已补齐”。
+- **布尔开关类字段（`includeFiles` / `enabled` / `flag` 等）**：如果在业务中总是需要一个明确的布尔值，就不要写成可选再处处用 `?? true/false` 兜底，而是**直接在类型上定义为必填字段**，只在集中 normalize 处补一次默认值。
 
 ```typescript
 type SearchMode = 'name' | 'path';
