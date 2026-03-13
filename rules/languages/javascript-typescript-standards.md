@@ -557,6 +557,39 @@ export type OrderStatus =
   | 'cancelled';
 ```
 
+#### 3.3.2 避免重复定义“同字段同语义”的类型/返回值（强制）
+**如果某个对象的字段结构与语义与返回类型完全一致，就不要为了“显式”而：**
+
+- 重复定义一个字段一模一样的新类型
+- 重新组装一遍同字段对象再返回（`return { a: x.a, b: x.b }`）
+
+应优先使用**类型复用**与**直接返回**；只有当你在边界处做了“补齐/转换/裁剪/重命名”等语义变化时，才定义新的 `Normalized*` / `Public*` / `Persisted*` 类型并显式映射。
+
+```typescript
+export type SearchOptions = {
+  caseSensitive?: boolean;
+  mode?: 'name' | 'path';
+  root: string;
+};
+
+// ❌ 避免：同字段同语义还要重新组装
+export function buildOptionsBad(options: SearchOptions): SearchOptions {
+  return {
+    caseSensitive: options.caseSensitive,
+    mode: options.mode,
+    root: options.root,
+  };
+}
+
+// ✅ 推荐：字段/语义一致，直接返回
+export function buildOptions(options: SearchOptions): SearchOptions {
+  return options;
+}
+
+// ✅ 推荐：类型也不要重复定义，直接复用/别名
+export type SearchOptionsInput = SearchOptions;
+```
+
 ```typescript
 // ❌ 禁止 - 直接在代码中定义类型
 function processUser(user: { name: string; age: number }) {
@@ -682,6 +715,32 @@ src/
 2. **避免大文件**：单个文件代码行数不得超过 400 行，超出必须重构为更小的模块
 3. **公共代码例外**：真正通用的代码放在 `shared/` 或 `utils/` 目录
 4. **就近原则**：工具函数优先放在使用它的模块内，只有被多个模块使用时才放到公共目录
+
+### 4.3 对象字面量中的函数调用（强制）
+**在对象字面量中禁止直接写复杂表达式/调用函数，必须提前提取为具名变量后再使用。**
+
+```typescript
+// ❌ 禁止：在对象字面量里直接调用函数、做复杂运算
+const item = {
+  highlights: createSearchHighlights(nameRanges, pathRanges),
+  name: document.name,
+  path: document.path,
+  score: getSearchItemScore(nameRanges, pathRanges),
+  type: document.type,
+};
+
+// ✅ 推荐：上方定义清晰的中间变量，对象构造保持“纯数据”
+const highlights = createSearchHighlights(nameRanges, pathRanges);
+const score = getSearchItemScore(nameRanges, pathRanges);
+
+const itemOk = {
+  highlights,
+  name: document.name,
+  path: document.path,
+  score,
+  type: document.type,
+};
+```
 
 ## 5. 类型定义
 
@@ -1939,6 +1998,56 @@ const config = destr<Config>(process.env.APP_CONFIG);
 ### 10.1 减少三元运算符使用
 **非必要不使用三元运算符，优先使用 if/else 或提前返回。**
 
+#### 10.1.1 禁止“分支赋值型三元”（强制）
+**禁止用三元运算符在多处分支给变量赋值/构造值（尤其是多行三元、或同一意图写两段三元）。这种逻辑必须抽离为函数，或改为显式 `if/else`。**
+
+典型禁止写法（示例）：
+
+```typescript
+// ❌ 禁止：同一意图写两段三元来构造结果
+const nameRanges = searchMode === 'path'
+  ? []
+  : getMatchRanges(document.name, trimmedQuery, caseSensitive);
+
+const pathRanges = searchMode === 'name'
+  ? []
+  : getMatchRanges(document.path, trimmedQuery, caseSensitive);
+```
+
+推荐写法（抽离函数，意图更集中）：
+
+```typescript
+type SearchMode = 'name' | 'path';
+
+function getDocumentMatchRanges(args: {
+  document: { name: string; path: string };
+  query: string;
+  caseSensitive: boolean;
+  searchMode: SearchMode;
+}): { nameRanges: number[]; pathRanges: number[] } {
+  const { document, query, caseSensitive, searchMode } = args;
+
+  if (searchMode === 'path') {
+    return {
+      nameRanges: [],
+      pathRanges: getMatchRanges(document.path, query, caseSensitive),
+    };
+  }
+
+  if (searchMode === 'name') {
+    return {
+      nameRanges: getMatchRanges(document.name, query, caseSensitive),
+      pathRanges: [],
+    };
+  }
+
+  return {
+    nameRanges: getMatchRanges(document.name, query, caseSensitive),
+    pathRanges: getMatchRanges(document.path, query, caseSensitive),
+  };
+}
+```
+
 ```typescript
 // ❌ 避免 - 复杂的三元运算符
 const result = condition1 
@@ -1985,6 +2094,62 @@ const status = isActive ? 'active' : 'inactive';
 
 ### 10.2 减少空值合并运算符使用
 **非必要不使用 `??`，优先使用显式判断或 lodash 工具函数。**
+
+#### 10.2.1 默认值必须与 TypeScript 类型一致（强制）
+**是否给默认值，必须由 TypeScript 类型决定：**
+
+- **可选字段（`foo?: T` 或 `foo: T | undefined`）**：表示“可以没有”。**禁止为了方便而写默认值**（例如 `?? false` / `?? ''` / `?? SOME_DEFAULT`），应保持 `undefined` 语义并向下传递。
+- **必填字段（`foo: T`）**：表示“必须有”。如果运行时可能缺失，应该**先调整类型为可选**，再在边界处（入口/解析/normalize）明确补齐默认值，并在返回类型上体现“已补齐”。
+
+```typescript
+type SearchMode = 'name' | 'path';
+const SEARCH_MODE_NAME_OR_PATH: SearchMode = 'name';
+
+type SearchOptionsInput = {
+  caseSensitive?: boolean;
+  mode?: SearchMode;
+  root: string; // 必填：调用方必须提供
+};
+
+type SearchOptions = {
+  caseSensitive?: boolean;
+  mode?: SearchMode;
+  root: string;
+};
+
+// ✅ 好的示例：可选字段保持 undefined，不强行默认
+function buildSearchOptions(options: SearchOptionsInput): SearchOptions {
+  return {
+    caseSensitive: options.caseSensitive,
+    mode: options.mode,
+    root: options.root,
+  };
+}
+
+type NormalizedSearchOptions = {
+  caseSensitive: boolean;
+  mode: SearchMode;
+  root: string;
+};
+
+// ✅ 好的示例：在 normalize 边界补齐默认值，并用返回类型表达“已补齐”
+function normalizeSearchOptions(options: SearchOptionsInput): NormalizedSearchOptions {
+  return {
+    caseSensitive: options.caseSensitive ?? false,
+    mode: options.mode ?? SEARCH_MODE_NAME_OR_PATH,
+    root: options.root,
+  };
+}
+
+// ❌ 避免：字段是可选却到处默认，掩盖“没传”这个语义
+function bad(options: SearchOptionsInput): NormalizedSearchOptions {
+  return {
+    caseSensitive: options.caseSensitive ?? false,
+    mode: options.mode ?? SEARCH_MODE_NAME_OR_PATH,
+    root: options.root,
+  };
+}
+```
 
 ```typescript
 // ❌ 避免 - 过度使用 ??
