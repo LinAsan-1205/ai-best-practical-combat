@@ -717,7 +717,7 @@ src/
 4. **就近原则**：工具函数优先放在使用它的模块内，只有被多个模块使用时才放到公共目录
 
 ### 4.3 对象字面量中的函数调用（强制）
-**在对象字面量中禁止直接写复杂表达式/调用函数，必须提前提取为具名变量后再使用。**
+**在对象字面量中禁止直接写复杂表达式/调用函数（哪怕只有一次简单调用），必须提前提取为具名变量后再使用。**
 
 ```typescript
 // ❌ 禁止：在对象字面量里直接调用函数、做复杂运算
@@ -729,9 +729,16 @@ const item = {
   type: document.type,
 };
 
+// ❌ 禁止：即使只有单个字段调用函数也不允许
+const result = {
+  nameRanges: getMatchRanges(document.name, query, caseSensitive),
+  pathRanges: [],
+};
+
 // ✅ 推荐：上方定义清晰的中间变量，对象构造保持“纯数据”
 const highlights = createSearchHighlights(nameRanges, pathRanges);
 const score = getSearchItemScore(nameRanges, pathRanges);
+const nameRanges = getMatchRanges(document.name, query, caseSensitive);
 
 const itemOk = {
   highlights,
@@ -739,6 +746,11 @@ const itemOk = {
   path: document.path,
   score,
   type: document.type,
+};
+
+const resultOk = {
+  nameRanges,
+  pathRanges: [],
 };
 ```
 
