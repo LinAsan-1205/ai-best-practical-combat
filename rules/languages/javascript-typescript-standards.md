@@ -519,6 +519,44 @@ function submitForm() {
 ### 3.3 类型定义规范
 **所有类型必须在独立的 type 文件或接口中定义，禁止在代码中直接内联定义类型；禁止在类型中使用 `T | null` 这种“可为 null”的联合类型，没有值就用可选属性或 `undefined`。**
 
+#### 3.3.1 类型与字段注释（强制）
+**所有 TypeScript 类型定义（`interface` / `type` / `enum`）必须写文档注释，且类型的每个字段/成员也必须写注释（包括可选字段、嵌套对象字段）。**
+
+- 类型本身：使用 `/** ... */` 说明该类型的职责/使用场景/关键约束
+- 每个字段：使用 `/** ... */` 说明含义、单位/格式、取值范围、为空/缺省语义等
+- 禁止用“看名字就知道”的理由省略字段注释（规范要求以**可读性与可维护性**为准）
+
+```typescript
+/** 用户资料（用于个人中心与评论展示） */
+export interface UserProfile {
+  /** 用户唯一标识（UUID） */
+  userId: string;
+
+  /** 展示名（允许为空字符串？如果不允许，请在校验层保证） */
+  displayName: string;
+
+  /** 头像 URL；未设置则为 undefined */
+  avatarUrl?: string;
+
+  /** 联系方式（不对外展示） */
+  contact: {
+    /** 邮箱地址（RFC 5322 格式的子集） */
+    email: string;
+    /** 手机号（E.164；未提供则为 undefined） */
+    phone?: string;
+  };
+}
+
+/** 订单状态（用于 UI 展示与筛选） */
+export type OrderStatus =
+  /** 待支付 */
+  | 'pending'
+  /** 已支付 */
+  | 'paid'
+  /** 已取消 */
+  | 'cancelled';
+```
+
 ```typescript
 // ❌ 禁止 - 直接在代码中定义类型
 function processUser(user: { name: string; age: number }) {
@@ -704,6 +742,38 @@ function process(data: { value: string }): string {
 ```
 
 ## 6. 函数
+
+### 5.0 函数注释（强制）
+**每个函数都必须写文档注释（包括普通函数、类方法、导出函数、回调/处理器等）。**
+
+- 使用 `/** ... */` 描述该函数的职责、关键约束与副作用（如 I/O、缓存、事务、状态变更）
+- 对外可复用/被导出的函数：必须写清楚参数语义、返回值语义、错误/异常与边界条件
+- 纯内部且实现非常直观的函数：仍需有最小注释（至少一句话说明意图），避免“看代码才能懂”
+
+```typescript
+/**
+ * 计算购物车总价（不含运费）。
+ * - 金额单位：分（integer）
+ * - 规则：仅统计勾选商品；单价 * 数量后求和
+ */
+export function calculateCartTotal(items: CartItem[]): number {
+  return items
+    .filter(i => i.selected)
+    .reduce((sum, i) => sum + i.unitPriceCents * i.quantity, 0);
+}
+
+/**
+ * 从后端拉取用户资料。
+ * @throws 当响应非 2xx 或解析失败时抛出 Error
+ */
+export async function fetchUserProfile(userId: string): Promise<UserProfile> {
+  const response = await fetch(`/api/users/${userId}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch user profile: ${response.statusText}`);
+  }
+  return response.json() as Promise<UserProfile>;
+}
+```
 
 ### 5.1 箭头函数
 ```typescript
