@@ -596,7 +596,7 @@ function processUser(user: { name: string; age: number }) {
   // ...
 }
 
-// ❌ 禁止 - 导出函数的 options 参数内联对象类型
+// ❌ 禁止 - 导出函数的 options 参数或返回值内联对象类型
 export function normalizeDirectoryTreeOptions(options: {
   deep?: number;
   dot?: boolean;
@@ -604,7 +604,14 @@ export function normalizeDirectoryTreeOptions(options: {
   ignore?: string[];
   includeDirs?: boolean;
   includeFiles?: boolean;
-}) {
+}): {
+  deep: number;
+  dot: boolean;
+  followSymlinks: boolean;
+  ignore: string[];
+  includeDirs: boolean;
+  includeFiles: boolean;
+} {
   // ...
 }
 
@@ -625,9 +632,24 @@ export interface NormalizeDirectoryTreeOptions {
   includeFiles?: boolean;
 }
 
+export interface NormalizedDirectoryTreeOptions {
+  /** 最终遍历深度（已经补齐默认值） */
+  deep: number;
+  /** 是否包含以 . 开头的文件/目录（已经补齐默认值） */
+  dot: boolean;
+  /** 是否跟随符号链接（已经补齐默认值） */
+  followSymlinks: boolean;
+  /** 已归一化的忽略路径模式（glob） */
+  ignore: string[];
+  /** 结果中是否包含目录节点（已经补齐默认值） */
+  includeDirs: boolean;
+  /** 结果中是否包含文件节点（已经补齐默认值） */
+  includeFiles: boolean;
+}
+
 export function normalizeDirectoryTreeOptions(
   options: NormalizeDirectoryTreeOptions,
-) {
+): NormalizedDirectoryTreeOptions {
   // ...
 }
 
