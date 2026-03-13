@@ -517,7 +517,7 @@ function submitForm() {
 ```
 
 ### 3.3 类型定义规范
-**所有类型必须在独立的 type 文件或接口中定义，禁止在代码中直接内联定义类型；禁止在类型中使用 `T | null` 这种“可为 null”的联合类型，没有值就用可选属性或 `undefined`。**
+**所有类型必须在独立的 type 文件或接口中定义，禁止在代码中直接内联定义类型（包括函数参数、返回值、对象字面量等）；禁止在类型中使用 `T | null` 这种“可为 null”的联合类型，没有值就用可选属性或 `undefined`。**
 
 #### 3.3.1 类型与字段注释（强制）
 **所有 TypeScript 类型定义（`interface` / `type` / `enum`）必须写文档注释，且类型的每个字段/成员也必须写注释（包括可选字段、嵌套对象字段）。**
@@ -593,6 +593,41 @@ export type SearchOptionsInput = SearchOptions;
 ```typescript
 // ❌ 禁止 - 直接在代码中定义类型
 function processUser(user: { name: string; age: number }) {
+  // ...
+}
+
+// ❌ 禁止 - 导出函数的 options 参数内联对象类型
+export function normalizeDirectoryTreeOptions(options: {
+  deep?: number;
+  dot?: boolean;
+  followSymlinks?: boolean;
+  ignore?: string[];
+  includeDirs?: boolean;
+  includeFiles?: boolean;
+}) {
+  // ...
+}
+
+// ✅ 推荐 - 把参数对象抽成具名类型（并按规范写注释）
+/** 目录树归一化配置 */
+export interface NormalizeDirectoryTreeOptions {
+  /** 遍历深度；undefined 表示不限制 */
+  deep?: number;
+  /** 是否包含以 . 开头的文件/目录 */
+  dot?: boolean;
+  /** 是否跟随符号链接 */
+  followSymlinks?: boolean;
+  /** 要忽略的路径模式（glob） */
+  ignore?: string[];
+  /** 是否在结果中包含目录节点 */
+  includeDirs?: boolean;
+  /** 是否在结果中包含文件节点 */
+  includeFiles?: boolean;
+}
+
+export function normalizeDirectoryTreeOptions(
+  options: NormalizeDirectoryTreeOptions,
+) {
   // ...
 }
 
