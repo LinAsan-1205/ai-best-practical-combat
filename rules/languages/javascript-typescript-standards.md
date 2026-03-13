@@ -1,5 +1,47 @@
 # JavaScript / TypeScript 代码规范
 
+> 本规范已按章节拆分为多个子文件，便于按主题查阅和维护。  
+> 建议：日常阅读优先打开对应子文件；本文件更多作为**总览 + 历史全文**保留。
+
+## 目录 / 拆分索引
+
+- **0. 核心原则**  
+  - 详细版：`rules/languages/javascript-typescript/core-principles.md`
+- **1. 语言选择**  
+  - 详细版：`rules/languages/javascript-typescript/language-choice.md`
+- **2. TypeScript 配置**  
+  - 详细版：`rules/languages/javascript-typescript/ts-config.md`
+- **3. 命名规范**  
+  - 详细版：`rules/languages/javascript-typescript/naming.md`
+- **4. 代码组织**  
+  - 详细版：`rules/languages/javascript-typescript/code-organization.md`
+- **5. 类型定义**  
+  - 详细版：`rules/languages/javascript-typescript/types.md`
+- **6. 函数**  
+  - 详细版：`rules/languages/javascript-typescript/functions.md`
+- **7. 类**  
+  - 详细版：`rules/languages/javascript-typescript/classes.md`
+- **8. 模块**  
+  - 详细版：`rules/languages/javascript-typescript/modules.md`
+- **9. React 性能优化规范**  
+  - 详细版：`rules/languages/javascript-typescript/react-performance.md`
+- **10. 工具函数规范**  
+  - 详细版：`rules/languages/javascript-typescript/utils.md`
+- **11. 条件表达式规范**  
+  - 详细版：`rules/languages/javascript-typescript/conditionals.md`
+- **12. ESLint 配置**  
+  - 详细版：`rules/languages/javascript-typescript/eslint.md`
+- **13. 注释规范（参考 Google）**  
+  - 详细版：`rules/languages/javascript-typescript/comments-google.md`
+- **14. 代码审查清单**  
+  - 详细版：`rules/languages/javascript-typescript/code-review-checklist.md`
+- **15. 代码格式化规范（参考 StandardJS + Prettier）**  
+  - 详细版：`rules/languages/javascript-typescript/formatting.md`
+- **16. 工具推荐**  
+  - 详细版：`rules/languages/javascript-typescript/tooling.md`
+
+---
+
 ## 0. 核心原则
 
 ### 0.1 规范优先原则
