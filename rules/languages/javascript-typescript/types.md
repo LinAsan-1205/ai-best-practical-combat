@@ -13,6 +13,23 @@
    - “详细规则见 `rules/languages/javascript-typescript/types.md`”。
 
 
+### 对象联合类型必须拆分为独立类型
+
+- **规则**：当联合类型（`|`）的成员是**对象结构**时，必须为每个成员对象单独定义 `type` / `interface`（可导出），再用它们组合成联合类型；禁止直接内联对象并用 `|` 拼接。
+- **原因**：联合类型里的某个成员对象往往会在其他地方被单独复用；提前命名可提升复用性、可读性与可维护性，并避免后续“抽取类型”时的连锁改动。
+
+```ts
+// ❌ 禁止：内联对象联合类型（成员对象无法复用、难以引用）
+type Result =
+  | { ok: true; data: { id: string } }
+  | { ok: false; error: { code: string; message: string } };
+
+// ✅ 推荐：拆分命名后再组合联合类型（可单独复用每个成员）
+export type OkResult = { ok: true; data: { id: string } };
+export type ErrResult = { ok: false; error: { code: string; message: string } };
+export type Result2 = OkResult | ErrResult;
+```
+
 ### 布尔与类型转换规范
 
 - **禁止使用构造函数进行布尔转换**
