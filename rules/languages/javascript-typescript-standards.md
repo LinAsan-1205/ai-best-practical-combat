@@ -470,7 +470,46 @@ interface ShoppingCartRepository {}
 interface OrderFulfillmentStrategy {}
 ```
 
-### 3.3 文件行数限制
+### 3.3 文件命名（含 .tsx 组件）
+
+**所有文件必须使用语义化命名，文件名必须与导出职责强相关；React 组件文件使用大驼峰（PascalCase）命名。**
+
+- **通用规则**
+  - 使用英文语义单词组合，禁止缩写（同变量/函数命名规范）
+  - 使用统一后缀表达类型：`*.service.ts`, `*.repository.ts`, `*.controller.ts`, `*.utils.ts` 等
+  - 测试文件按 `*.test.ts` / `*.test.tsx` 命名
+- **UI / React 组件文件（.tsx）**
+  - **必须使用大驼峰（PascalCase）命名，不允许下划线 / 中划线 / 全小写**
+  - 文件名应与默认导出的组件名一致
+  - 一个文件只承载一个主要导出组件，其它仅为该组件服务的子组件可以内联定义或放在同目录下
+
+```text
+// ❌ 禁止
+button.tsx
+user_profile.tsx
+user-profile.tsx
+userprofile.tsx
+
+// ✅ 推荐
+Button.tsx
+PrimaryButton.tsx
+UserProfile.tsx
+UserProfileCard.tsx
+
+// ✅ 推荐 - 目录组织
+src/components/
+  Button/
+    Button.tsx
+    Button.test.tsx
+    Button.types.ts
+    Button.stories.tsx
+  UserProfile/
+    UserProfile.tsx
+    UserProfileHeader.tsx
+    UserProfile.test.tsx
+```
+
+### 3.4 文件行数限制
 **单个文件代码行数不得超过 400 行，超出必须重构为更小的模块。**
 
 ```typescript
