@@ -142,16 +142,28 @@ my-web-app/
 │   │       ├── UserCard/
 │   │       └── ProductList/
 │   │
-│   ├── pages/              # 页面组件
-│   │   ├── Home/
-│   │   │   ├── index.tsx
-│   │   │   ├── Home.tsx
-│   │   │   ├── Home.test.tsx
-│   │   │   └── components/     # 页面私有组件
-│   │   ├── About/
-│   │   └── User/
-│   │       ├── Profile/
-│   │       └── Settings/
+│   ├── plugins/            # 插件统一目录（项目级扩展/能力注入）
+│   │   ├── index.ts         # 插件注册入口（按需）
+│   │   └── ...              # 例如：i18n/analytics/error-tracking 等
+│   │
+│   ├── routers/            # 路由统一目录
+│   │   ├── index.ts         # 路由入口（聚合导出/注册）
+│   │   └── ...              # 例如：routes.ts、guards.ts、loaders.ts
+│   │
+│   ├── pages/              # 页面统一目录（每个页面必须是“目录”）
+│   │   ├── home/
+│   │   │   ├── index.tsx            # 页面入口（该页面对外唯一入口）
+│   │   │   ├── page.tsx             # 页面实现（可选命名）
+│   │   │   ├── page.test.tsx        # 页面测试（可选）
+│   │   │   └── components/          # 页面私有组件（禁止被其它页面/模块复用）
+│   │   │       └── ...
+│   │   ├── about/
+│   │   │   └── index.tsx
+│   │   └── user/                    # 支持子目录（页面分组/子路由）
+│   │       ├── profile/
+│   │       │   └── index.tsx
+│   │       └── settings/
+│   │           └── index.tsx
 │   │
 │   ├── hooks/              # 自定义 Hooks
 │   │   ├── useAuth.ts
@@ -204,6 +216,25 @@ my-web-app/
 ├── package.json
 └── README.md
 ```
+
+### 2.2 前端目录约定（必须遵守）
+
+#### 2.2.1 `plugins/`（插件统一目录）
+- **统一入口**：项目内的“插件/扩展/能力注入”代码统一放在 `src/plugins/`。
+- **典型内容**：埋点/分析、国际化、错误监控、权限初始化、全局拦截器、第三方 SDK 初始化等。
+- **禁止**：不要把插件初始化散落在 `src/utils/`、`src/services/` 或某个页面目录里。
+
+#### 2.2.2 `routers/`（路由统一目录）
+- **统一入口**：路由定义、路由守卫、路由数据加载等统一放在 `src/routers/`。
+- **页面解耦**：页面只负责 UI 与页面内逻辑；路由注册/拼装在 `routers/` 完成。
+
+#### 2.2.3 `pages/`（页面统一目录：一页一目录）
+- **页面=目录**：`src/pages/` 下每个页面必须是一个目录（禁止出现单文件页面 `src/pages/Foo.tsx`）。
+- **入口文件**：每个页面目录必须包含 `index.tsx`/`index.ts` 作为**该页面对外唯一入口**。
+- **页面私有组件**：页面专用组件必须放在 `src/pages/<page>/components/`，并且**禁止跨页面复用**。
+  - 需要跨页面复用的组件，提升到 `src/components/`（通用组件）或更合适的共享目录。
+- **支持子目录**：允许 `src/pages/<group>/<page>/index.tsx` 形式的子目录，用于页面分组或子路由。
+- **命名**：页面目录、子目录统一使用**小写连字符**（例如 `user-settings/`），与全局文件/目录命名规范一致。
 
 ### 2.2 组件文件结构
 ```

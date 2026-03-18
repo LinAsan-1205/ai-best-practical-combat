@@ -35,6 +35,8 @@ rules/
 | Java 项目 | [`languages/java-standards.md`](./languages/java-standards.md) |
 | Python 项目 | [`languages/python-standards.md`](./languages/python-standards.md) |
 
+> 提示：前端项目的目录强制约定（`src/plugins/`、`src/routes/`、`src/pages/` 一页一目录 + 页面私有 `components/` 等）已统一写在 `practices/project-structure-standards.md` 的 Web 前端章节内。
+
 ## 文件大小参考
 
 | 文件 | 大小 | 说明 |
