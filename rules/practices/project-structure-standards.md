@@ -176,13 +176,23 @@ my-web-app/
 │   │   └── appStore.ts
 │   │
 │   ├── services/           # API 服务
-│   │   ├── api/
-│   │   │   ├── client.ts
-│   │   │   ├── userApi.ts
-│   │   │   └── productApi.ts
-│   │   └── types/
-│   │       ├── user.ts
-│   │       └── product.ts
+│   │   ├── api/                  # 按功能分目录（支持子目录）
+│   │   │   ├── index.ts          # API 聚合导出（可选）
+│   │   │   ├── shared/           # 跨功能共享（谨慎使用，优先下沉到 services 层）
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── types.ts
+│   │   │   │   └── api.ts
+│   │   │   ├── user/
+│   │   │   │   ├── index.ts      # 对外统一导出（必需）
+│   │   │   │   ├── types.ts      # 类型定义（必需）
+│   │   │   │   └── api.ts        # 具体请求实现（必需）
+│   │   │   └── product/
+│   │   │       ├── index.ts
+│   │   │       ├── types.ts
+│   │   │       └── api.ts
+│   │   └── client/               # API 客户端（fetch/axios 实例、拦截器、基础封装等）
+│   │       ├── index.ts
+│   │       └── client.ts
 │   │
 │   ├── utils/              # 工具函数
 │   │   ├── format.ts
@@ -236,7 +246,18 @@ my-web-app/
 - **支持子目录**：允许 `src/pages/<group>/<page>/index.tsx` 形式的子目录，用于页面分组或子路由。
 - **命名**：页面目录、子目录统一使用**小写连字符**（例如 `user-settings/`），与全局文件/目录命名规范一致。
 
-### 2.2 组件文件结构
+#### 2.2.4 `services/api/`（API 服务按功能分目录）
+- **按功能分目录**：所有 API 服务统一放在 `src/services/api/` 下，并按功能拆成目录（支持子目录）。
+- **固定三件套**：每个功能目录必须包含以下三个文件：
+  - `index.ts`：该功能 API 的对外导出入口（只导出公共 API/类型）
+  - `types.ts`：该功能相关类型定义
+  - `api.ts`：该功能相关请求实现（调用 client）
+- **支持子目录**：复杂功能允许继续按子域拆分：
+  - `src/services/api/order/refund/{index.ts,types.ts,api.ts}`
+  - `src/services/api/order/invoice/{index.ts,types.ts,api.ts}`
+- **禁止**：不要再使用 `userApi.ts` 这种“按文件堆功能”的方式；禁止把类型散落在 `src/types/` 里再跨模块引用（除非是全局共享类型）。
+
+### 2.3 组件文件结构
 ```
 ComponentName/
 ├── index.ts                # 统一导出
